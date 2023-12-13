@@ -35,7 +35,11 @@
                             Aggiungi Piatto
                         </a>
                     </button>
-                    <button class="card__btn card__btn-solid button-detail">Dettagli</button>
+                    <button class="card__btn card__btn-solid button-detail">
+                        <a class="text-decoration-none" href="{{ route('admin.restaurant.dashboard', $single_restaurant->id) }}">
+                            Dettagli
+                        </a>
+                    </button>
                 </div>
             </div>
         @endforeach
@@ -51,9 +55,10 @@
                         <div class="row">
                             <div class="col-12">
                                 <p class="fw-semibold">{{ $dish->name }}</p>
+                                <img src="{{$dish->image}}" class="img-fluid img-thumbnail width-200" alt="{{$dish->name}}">
                                 <p>{{ $dish->description }}</p>
                                 <p> <span class="fw-semibold">Ingredienti: </span> {{ $dish->ingredients }}</p>
-                                <p>{{ $dish->price }} €</p> 
+                                <p>{{ $dish->price }} €</p>
                             </div>
                         </div>
                         <div class="row justify-content-center mb-5">

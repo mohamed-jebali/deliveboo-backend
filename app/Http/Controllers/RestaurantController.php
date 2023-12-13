@@ -6,6 +6,7 @@ use App\Models\Restaurant;
 use App\Models\Dish;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\Type;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,9 @@ class RestaurantController extends Controller
     public function index()
     {
         $user_id = Auth::user()->id;
-        $restaurant = Restaurant::where("user_id", $user_id)->with("dishes")->get();
+        $restaurant = Restaurant::where("user_id", $user_id)->with(["dishes" => function ($query) {
+            $query->orderBy("name", "asc");
+        }])->get();
         return view("admin.restaurant.index", compact("restaurant"));
     }
 
@@ -29,7 +32,8 @@ class RestaurantController extends Controller
      */
     public function create()
     {
-        return view("admin.restaurant.create");
+        $types = Type::all();
+        return view("admin.restaurant.create", compact("types"));
     }
 
     /**
@@ -55,6 +59,7 @@ class RestaurantController extends Controller
         $newRestaurant->piva = $request->validated('piva');
         $newRestaurant->photo = $photoPath;
         $newRestaurant->save();
+        $newRestaurant->types()->attach($request->types);
         Auth::login($newUser);
         return redirect()->route('admin.restaurant.index');
 
@@ -69,9 +74,11 @@ class RestaurantController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(restaurant $restaurant)
+    public function show($id)
     {
-        //
+        $user_id = Auth::user()->id;
+        $restaurants = Restaurant::where("user_id", $user_id)->with("types")->get();
+        return view('admin.restaurant.dashboard', compact("user_id","restaurants"));
     }
 
     /**
@@ -79,16 +86,44 @@ class RestaurantController extends Controller
      */
     public function edit($id)
     {
-
+        $user_id = Auth::user()->id;
+        $restaurants = Restaurant::where("user_id", $user_id)->with("types")->get();
+        // dd($restaurants[0]->types());
+        $list_types = Type::all();
+        return view('admin.restaurant.editAccount', compact("user_id","restaurants","list_types"));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateDishValidation $request, $id)
-    {
+    public function update(Request $request, $id)
+{
+            $request->validate([
+                'name' => 'required|min:5|max:100',
+                'address' => 'required',
+                'piva' => 'required|min:20',
+                'photo' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'types' => 'array',
+            ]);
 
-    }
+            $restaurant = Restaurant::findOrFail($id);
+
+            $restaurant->name = $request->input('name');
+            $restaurant->address = $request->input('address');
+            $restaurant->piva = $request->input('piva');
+
+            if ($request->hasFile('photo')) {
+                $photoPath = asset('storage') . '/' . Storage::disk('public')->put('uploads', $request->file('photo'));
+                $restaurant->photo = $photoPath;
+            }
+
+            $restaurant->save();
+
+            $restaurant->types()->sync($request->input('types', []));
+
+            return redirect()->route('admin.restaurant.show', $id)->with('success', 'Profilo aggiornato con successo!');
+}
+
 
 
     /**
